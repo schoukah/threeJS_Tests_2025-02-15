@@ -1,0 +1,33 @@
+body { 
+	margin: 0;
+	background-color: #000000; 
+}
+
+canvas {
+	position: fixed;
+	top: 0;
+	left: 0;
+  }
+
+#info {
+	position: absolute;
+	top: 10px;
+	width: 100%;
+	text-align: center;
+	z-index: 100;
+	display:block;
+	color: #ffffff;
+	padding: 120px 0;
+}
+
+#text {
+	z-index: 100;
+	position: absolute;
+	width: 100%;
+	margin: 0px auto;
+	color: #ffffff;
+	padding: 120px 0px;
+  
+	display: grid;
+	grid-template-columns: repeat(12, 1fr);
+}

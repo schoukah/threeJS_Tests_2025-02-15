@@ -36,6 +36,7 @@ scene.add(modelContainerB);
 // Optimization: Store DOM elements and computed values
 const lightSection = document.querySelector('section.light');
 const lettreBSection = document.querySelector('#lettreB');
+const lastQuoteSection = document.querySelector('#lastQuote');
 let lastScrollTop = 0;
 let scrollTimeout = null;
 let isModelALoaded = false;
@@ -105,8 +106,11 @@ const handleScroll = () => {
             
             const lettreBRect = lettreBSection.getBoundingClientRect();
             const triggerPosition = window.innerHeight * 0.9; // Changed from 0.75 to 0.9 to trigger earlier
+
+            const lastQuoteRect = lastQuoteSection.getBoundingClientRect();
+            const lastQuoteTriggerPosition = window.innerHeight * 0.9; // Changed from 0.75 to 0.9 to trigger earlier
             
-            if (lettreBRect.top <= triggerPosition) {
+            if (lettreBRect.top <= triggerPosition && lastQuoteRect.top > lastQuoteTriggerPosition) {
                 // Calculate progress over a larger range for smoother animation
                 const progress = Math.min(1, (triggerPosition - lettreBRect.top) / (window.innerHeight * 0.8));
                 
@@ -116,7 +120,17 @@ const handleScroll = () => {
                 
                 // Optional: Add some vertical movement
                 modelContainerB.position.y = Math.sin(progress * Math.PI) * 2;
-            } else {
+            } else if (lastQuoteRect.top <= lastQuoteTriggerPosition) {
+
+                // Calculate progress over a larger range for smoother animation
+                const progress = Math.min(1, (lastQuoteTriggerPosition - lastQuoteRect.top) / (window.innerHeight * 0.8));
+
+                // Animate the model moving from current position to the left
+                modelContainerB.position.x = 4 - (progress * 10); // Starts at x=4 and moves left
+                modelContainerB.position.z = progress * 2; // Decreased from 8 to 2 to move further back
+
+            } else {    
+
                 // Reset position when scrolling back up
                 modelContainerB.position.x = -20;
                 modelContainerB.position.z = 0;

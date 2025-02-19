@@ -55,7 +55,7 @@ function setupModel(model, container, position) {
 const loader = new GLTFLoader();
 
 // Load model A
-loader.load('/A.glb', function (gltf) {
+loader.load('https://flaneries.net/A.glb', function (gltf) {
     setupModel(gltf.scene, modelContainerA, new THREE.Vector3(-8, 0, 0));
     isModelALoaded = true;
     needsRender = true;
@@ -63,7 +63,7 @@ loader.load('/A.glb', function (gltf) {
 });
 
 // Load model B
-loader.load('/B.glb', function (gltf) {
+loader.load('https://flaneries.net/B.glb', function (gltf) {
     const model = gltf.scene;
     
     // Scale the model if needed

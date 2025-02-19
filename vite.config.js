@@ -3,7 +3,8 @@ import { defineConfig } from 'vite'
 // import path from 'path'
 
 export default defineConfig({
-  build: {
+    base: 'https://flaneries.net/',
+    build: {
     rollupOptions: {
       external: [
         // Exclude all files in the src/excluded directory

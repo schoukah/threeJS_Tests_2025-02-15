@@ -6,6 +6,10 @@ export default defineConfig({
     base: 'https://flaneries.net/',
     build: {
     rollupOptions: {
+      input: {
+        main: '/src/js/main.js',
+        logo: '/src/js/animated_logo_v1_2025-02-21.js'
+      },
       external: [
         // Exclude all files in the src/excluded directory
         // /^\/src\/excluded\/.*/,

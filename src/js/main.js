@@ -70,7 +70,7 @@ loader.load('https://flaneries.net/B.glb', function (gltf) {
     model.scale.set(1, 1, 1); // Adjust scale values as needed
     
     // Initial position - start from left
-    setupModel(model, modelContainerB, new THREE.Vector3(-20, 0, 0)); // Changed from 5 to -20
+    setupModel(model, modelContainerB, new THREE.Vector3(-40, 0, 0)); // Changed from 5 to -20
     isModelBLoaded = true;
     needsRender = true;
     renderer.render(scene, camera);
@@ -102,6 +102,12 @@ const handleScroll = () => {
 
         // Handle model B
         if (isModelBLoaded) {
+            setTimeout(() => { 
+                console.log(modelContainerB.position.x);
+                console.log(modelContainerB.position.z);
+                console.log(modelContainerB.position.y);
+            }
+            , 1000);
             modelContainerB.rotation.y = t * 0.001;
             
             const lettreBRect = lettreBSection.getBoundingClientRect();
@@ -115,7 +121,7 @@ const handleScroll = () => {
                 const progress = Math.min(1, (triggerPosition - lettreBRect.top) / (window.innerHeight * 0.8));
                 
                 // Animate the model moving from left to right and further back
-                modelContainerB.position.x = -20 + (progress * 24);
+                modelContainerB.position.x = -40 + (progress * 24);
                 modelContainerB.position.z = progress * 2; // Decreased from 8 to 2 to move further back
                 
                 // Optional: Add some vertical movement
@@ -132,7 +138,7 @@ const handleScroll = () => {
             } else {    
 
                 // Reset position when scrolling back up
-                modelContainerB.position.x = -20;
+                modelContainerB.position.x = -40;
                 modelContainerB.position.z = 0;
                 modelContainerB.position.y = 0;
             }

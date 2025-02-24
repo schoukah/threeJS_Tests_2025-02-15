@@ -1,183 +1,253 @@
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-// Scene setup
+// Create a separate renderer div that won't interfere with scrolling
+const renderDiv = document.createElement('div');
+renderDiv.style.position = 'fixed';
+renderDiv.style.top = '0';
+renderDiv.style.left = '0';
+renderDiv.style.width = '100%';
+renderDiv.style.height = '100%';
+renderDiv.style.zIndex = '1';
+renderDiv.style.pointerEvents = 'none';
+document.body.prepend(renderDiv);
+
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x111111);
 
-const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(5, 0, 10);
-camera.lookAt(0, 0, 0);
+// Camera setup with better position for visibility
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+// Reset camera to original working position
+camera.position.set(0, 0.5, 0.01);
+camera.rotation.set(-1.5, 0, 0);
 
-// Renderer setup with optimized settings
 const renderer = new THREE.WebGLRenderer({ 
-    canvas: document.getElementById('bg'),
-    antialias: false,
-    powerPreference: 'high-performance',
-    precision: 'mediump'
+    alpha: true,
+    antialias: true,
+    powerPreference: "high-performance"
 });
-renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
 
-// Lights setup - optimized
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
+// Add this line to ensure the canvas doesn't block interaction with content
+// document.querySelector('canvas').style.pointerEvents = 'none';
+
+// Update canvas size on window resize
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Get canvas container
+const canvasContainer = document.getElementById('canvas-container');
+canvasContainer.appendChild(renderer.domElement);
+
+// Add OrbitControls back
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.05;
+controls.enableZoom = false;
+controls.enablePan = false;
+controls.enableRotate = true;
+
+// Enhanced lighting setup
+const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambientLight);
 
 const directionalLight = new THREE.DirectionalLight(0x00bbff, 6);
-directionalLight.position.set(0, 3, 5);
+directionalLight.position.set(5, 5, 5);
 scene.add(directionalLight);
 
-// Model containers
-const modelContainerA = new THREE.Group();
-const modelContainerB = new THREE.Group();
-scene.add(modelContainerA);
-scene.add(modelContainerB);
+// Add fill light from the front
+const frontLight = new THREE.DirectionalLight(0xffffff, 1);
+frontLight.position.set(0, 0, 5);
+scene.add(frontLight);
 
-// Optimization: Store DOM elements and computed values
-const lightSection = document.querySelector('section.light');
-const lettreBSection = document.querySelector('#lettreB');
-const lastQuoteSection = document.querySelector('#lastQuote');
+// Add scroll tracking variables
 let lastScrollTop = 0;
-let scrollTimeout = null;
-let isModelALoaded = false;
-let isModelBLoaded = false;
+let scrollDirection = 1; // 1 for forward, -1 for reverse
+let isAnimationPlaying = false;
+let hasPlayedReverseAnimation = false; // Add flag for tracking first reverse play
 
-// Function to center and setup model
-function setupModel(model, container, position) {
-    const box = new THREE.Box3().setFromObject(model);
-    const center = box.getCenter(new THREE.Vector3());
-    model.position.sub(center);
-    container.add(model);
-    container.position.copy(position);
+// Track scroll position and direction
+window.addEventListener('scroll', () => {
+    const st = window.pageYOffset || document.documentElement.scrollTop;
+    if (st > lastScrollTop && !hasPlayedReverseAnimation) {
+        // Only play reverse animation if it hasn't played yet
+        scrollDirection = -1;
+        hasPlayedReverseAnimation = true; // Mark that we've played the reverse animation
+        if (!isAnimationPlaying) {
+            playAnimationInDirection(scrollDirection);
+        }
+    }
+    lastScrollTop = st;
+}, false);
+
+// Animation setup
+let mixer;
+const clock = new THREE.Clock();
+let animationActions = [];
+
+// Add camera position states
+const cameraPositions = {
+    default: new THREE.Vector3(0, 0.5, 0.01),
+    closer: new THREE.Vector3(0, 0.25, 0.005)
+};
+let targetCameraPosition = cameraPositions.default.clone();
+let cameraMoveSpeed = 0.05;
+
+function lerpVector(start, end, alpha) {
+    return start.clone().lerp(end, alpha);
 }
 
-// Load 3D models
-const loader = new GLTFLoader();
+function updateCameraPosition() {
+    camera.position.copy(lerpVector(camera.position, targetCameraPosition, cameraMoveSpeed));
+}
 
-// Load model A
-loader.load('https://flaneries.net/A.glb', function (gltf) {
-    setupModel(gltf.scene, modelContainerA, new THREE.Vector3(-8, 0, 0));
-    isModelALoaded = true;
-    needsRender = true;
-    renderer.render(scene, camera);
-});
+let model; // Add model reference at the top level
 
-// Load model B
-loader.load('https://flaneries.net/B.glb', function (gltf) {
-    const model = gltf.scene;
+// Simplified animation state variables
+let targetFrame = 64;
+let initialAnimationComplete = false;
+let hasStartedScrolling = false;
+
+// Simplified scroll event listener
+window.addEventListener('scroll', () => {
+    if (initialAnimationComplete && !hasStartedScrolling) {
+        hasStartedScrolling = true;
+        continueAnimation();
+    }
+}, false);
+
+function continueAnimation() {
+    if (animationActions.length > 0) {
+        animationActions.forEach(action => {
+            action.paused = false;
+            action.setLoop(THREE.LoopOnce);
+            action.clampWhenFinished = true;
+            action.play();
+        });
+    }
+}
+
+function playInitialAnimation() {
+    if (animationActions.length > 0) {
+        animationActions.forEach(action => {
+            action.reset();
+            action.setLoop(THREE.LoopOnce);
+            action.clampWhenFinished = true;
+            action.timeScale = 1;
+            action.time = 0;
+            action.play();
+        });
+    }
+}
+
+// Modified fade out function to accept duration parameter
+function fadeOutModel(duration = 1000) {
+    if (!model) return;
     
-    // Scale the model if needed
-    model.scale.set(1, 1, 1); // Adjust scale values as needed
+    const startTime = Date.now();
     
-    // Initial position - start from left
-    setupModel(model, modelContainerB, new THREE.Vector3(-40, 0, 0)); // Changed from 5 to -20
-    isModelBLoaded = true;
-    needsRender = true;
-    renderer.render(scene, camera);
-});
-
-// Throttled scroll handler
-const handleScroll = () => {
-    if (!isModelALoaded && !isModelBLoaded) return;
-
-    const t = document.body.getBoundingClientRect().top;
-    
-    if (Math.abs(lastScrollTop - t) > 1) {
-        // Handle model A
-        if (isModelALoaded) {
-            modelContainerA.rotation.y = t * -0.001;
-            const lightSectionTop = lightSection.getBoundingClientRect().top;
-            const distanceToLight = lightSectionTop - window.innerHeight;
-            const moveThreshold = 300;
-            
-            if (distanceToLight < moveThreshold) {
-                const progress = Math.max(0, Math.min(1, 1 - (distanceToLight / moveThreshold)));
-                modelContainerA.position.x = -8 + (progress * 20);
-                modelContainerA.position.z = progress * 10;
-            } else {
-                modelContainerA.position.x = -8;
-                modelContainerA.position.z = 0;
-            }
-        }
-
-        // Handle model B
-        if (isModelBLoaded) {
-            setTimeout(() => { 
-                console.log(modelContainerB.position.x);
-                console.log(modelContainerB.position.z);
-                console.log(modelContainerB.position.y);
-            }
-            , 1000);
-            modelContainerB.rotation.y = t * 0.001;
-            
-            const lettreBRect = lettreBSection.getBoundingClientRect();
-            const triggerPosition = window.innerHeight * 0.9; // Changed from 0.75 to 0.9 to trigger earlier
-
-            const lastQuoteRect = lastQuoteSection.getBoundingClientRect();
-            const lastQuoteTriggerPosition = window.innerHeight * 0.9; // Changed from 0.75 to 0.9 to trigger earlier
-            
-            if (lettreBRect.top <= triggerPosition && lastQuoteRect.top > lastQuoteTriggerPosition) {
-                // Calculate progress over a larger range for smoother animation
-                const progress = Math.min(1, (triggerPosition - lettreBRect.top) / (window.innerHeight * 0.8));
-                
-                // Animate the model moving from left to right and further back
-                modelContainerB.position.x = -40 + (progress * 24);
-                modelContainerB.position.z = progress * 2; // Decreased from 8 to 2 to move further back
-                
-                // Optional: Add some vertical movement
-                modelContainerB.position.y = Math.sin(progress * Math.PI) * 2;
-            } else if (lastQuoteRect.top <= lastQuoteTriggerPosition) {
-
-                // Calculate progress over a larger range for smoother animation
-                const progress = Math.min(1, (lastQuoteTriggerPosition - lastQuoteRect.top) / (window.innerHeight * 0.8));
-
-                // Animate the model moving from current position to the left
-                modelContainerB.position.x = 4 - (progress * 10); // Starts at x=4 and moves left
-                modelContainerB.position.z = progress * 2; // Decreased from 8 to 2 to move further back
-
-            } else {    
-
-                // Reset position when scrolling back up
-                modelContainerB.position.x = -40;
-                modelContainerB.position.z = 0;
-                modelContainerB.position.y = 0;
-            }
+    function fade() {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        
+        if (model.traverse) {
+            model.traverse((child) => {
+                if (child.isMesh && child.material) {
+                    if (Array.isArray(child.material)) {
+                        child.material.forEach(mat => {
+                            mat.transparent = true;
+                            mat.opacity = 1 - progress;
+                        });
+                    } else {
+                        child.material.transparent = true;
+                        child.material.opacity = 1 - progress;
+                    }
+                }
+            });
         }
         
-        lastScrollTop = t;
-        needsRender = true;
+        if (progress < 1) {
+            requestAnimationFrame(fade);
+        } else {
+            scene.remove(model);
+        }
     }
-};
-
-// Throttle scroll events
-document.body.onscroll = () => {
-    if (scrollTimeout) return;
-    scrollTimeout = setTimeout(() => {
-        handleScroll();
-        scrollTimeout = null;
-    }, 16);
-};
-
-// Optimized resize handler
-let resizeTimeout;
-window.addEventListener('resize', () => {
-    if (resizeTimeout) clearTimeout(resizeTimeout);
-    resizeTimeout = setTimeout(() => {
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        needsRender = true;
-    }, 250);
-});
-
-// Render only when needed
-let needsRender = true;
-function animate() {
-    requestAnimationFrame(animate);
-    if (needsRender || isModelALoaded || isModelBLoaded) {
-        renderer.render(scene, camera);
-        needsRender = false;
-    }
+    
+    fade();
 }
 
+// Modify the animation loop to check frame
+function animate() {
+    requestAnimationFrame(animate);
+    if (mixer) {
+        const delta = clock.getDelta();
+        mixer.update(delta);
+        
+        // Check if we've reached frame 55 during initial animation
+        if (!initialAnimationComplete && mixer.time >= targetFrame / 30) {
+            animationActions.forEach(action => {
+                action.paused = true;
+            });
+            initialAnimationComplete = true;
+        }
+    }
+    updateCameraPosition();
+    controls.update();
+    renderer.render(scene, camera);
+}
+
+// Start animation loop
 animate();
+
+// Remove the existing animation loop if it exists
+renderer.setAnimationLoop(null);
+
+const loader = new GLTFLoader();
+
+loader.load('/ECN_tentative_animation_2.glb', function(gltf) {
+    model = gltf.scene; // Store model reference
+    model.position.set(0.25, 0, 0);
+    model.rotation.set(0, 0, 0);
+    scene.add(model);
+    
+    // Make materials transparent-capable from the start
+    model.traverse((child) => {
+        if (child.isMesh && child.material) {
+            if (Array.isArray(child.material)) {
+                child.material.forEach(mat => {
+                    mat.transparent = true;
+                });
+            } else {
+                child.material.transparent = true;
+            }
+        }
+    });
+    
+    // Setup animations
+    mixer = new THREE.AnimationMixer(model);
+    
+    if (gltf.animations.length > 0) {
+        gltf.animations.forEach(clip => {
+            const action = mixer.clipAction(clip);
+            animationActions.push(action);
+        });
+        // Start initial animation
+        playInitialAnimation();
+    }
+
+    // Log successful model load
+    console.log('Model loaded successfully');
+}, 
+// Add loading progress callback
+(xhr) => {
+    console.log((xhr.loaded / xhr.total * 100) + '% loaded');
+},
+(error) => {
+    console.error('Error loading model:', error);
+});

@@ -1,13 +1,14 @@
 @import url("https://use.typekit.net/jmk3xov.css");
 
 canvas {
-  position: fixed;
+  position: fixed; /* Ensures it stays in place */
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: 1000;
-  pointer-events: auto !important; /* Changed to ensure controls work */
+  width: 100vw;
+  height: 100vh;
+  /* z-index: 3; */
+  z-index: -1;
+  pointer-events: auto; /* Ensure it captures events */
 }
 
 :root {
@@ -20,6 +21,7 @@ canvas {
 
 body {
   margin: 0;
+  overflow-x: hidden;
   background-color: black;
   color: white;
 }
@@ -42,10 +44,9 @@ h1, h2, h3, blockquote {
 }
 
 h1 {
-  font-family: elevon, sans-serif;
-  font-weight: 700;
-  font-size: 5rem;
+  position: relative;
   pointer-events: none;
+  font-size: 4rem; /* Increased to 10rem for maximum impact */
 }
 
 header {
@@ -89,7 +90,10 @@ blockquote p {
   grid-template-columns: 1fr 1fr;
   height: 100vh;
   width: 100vw;
+  grid-column: 1 / -1 !important;
   pointer-events: none;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 .gauche-container {
@@ -98,6 +102,8 @@ blockquote p {
   align-items: center;
   padding-left: 5vw;
   pointer-events: none;
+  grid-column: 1 !important;
+  margin: 0 !important;
 }
 
 .droite-container {
@@ -110,34 +116,23 @@ blockquote p {
   /* background-color: lightblue; Just for visualization */
 }
 
-/* // Just the essential canvas container styles */
 #canvas-container {
-  position: fixed;
+  position: fixed !important;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 2;
-  pointer-events: auto !important;
+  z-index: 9999 !important;
+  pointer-events: auto;
+  transform: translateZ(0);
+  will-change: transform;
 }
 
 .content-wrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  pointer-events: none;
-}
-
-.content-wrapper, .gaucheCentre, .gauche-container, h1 {
-  pointer-events: none;
-}
-
-.viewport-container {
   position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
+  z-index: 1;
+  pointer-events: none;
+  transform: translateZ(0);
+  width: 100%;
+  grid-column: 1 / -1 !important;
 }

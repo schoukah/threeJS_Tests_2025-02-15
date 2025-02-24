@@ -1,113 +1,84 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
-import * as dat from 'dat.gui';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
+// Scene setup
 const scene = new THREE.Scene();
-const camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 0.1, 1000 );
+const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(0, 0.5, 0.01);
 camera.rotation.set(-1.5, 0, 0);
-// camera.lookAt(0, -1, 0); // Look at the vertical center of the model
 
-const renderer = new THREE.WebGLRenderer();
-renderer.setSize( window.innerWidth, window.innerHeight );
-document.body.appendChild( renderer.domElement );
+// Create a container for the WebGL canvas with specific blend mode
+const container = document.createElement('div');
+container.style.position = 'fixed';
+container.style.top = '0';
+container.style.left = '0';
+container.style.width = '100%';
+container.style.height = '100%';
+container.style.zIndex = '1';
+container.style.pointerEvents = 'none';
+document.body.appendChild(container);
+
+const renderer = new THREE.WebGLRenderer({ 
+    alpha: true,
+    antialias: true,
+    premultipliedAlpha: false,
+    stencil: false,
+    depth: true
+});
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setClearColor(0x000000, 0);
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.5;
+container.appendChild(renderer.domElement);
+
+// Bloom setup with two separate passes
+const bloomParams = {
+    threshold: 0.1,
+    strength: 2,
+    radius: 2.5,
+    exposure: 10
+};
+
+const renderScene = new RenderPass(scene, camera);
+const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    bloomParams.strength,
+    bloomParams.radius,
+    bloomParams.threshold
+);
+
+// Create primary composer
+const bloomComposer = new EffectComposer(renderer);
+bloomComposer.renderToScreen = false;
+bloomComposer.addPass(renderScene);
+bloomComposer.addPass(bloomPass);
+
+// Create final composer
+const finalComposer = new EffectComposer(renderer);
+finalComposer.addPass(renderScene);
 
 // Add OrbitControls
 const controls = new OrbitControls(camera, renderer.domElement);
-controls.enabled = true; // Re-enable OrbitControls
 controls.enableDamping = true;
 controls.dampingFactor = 0.05;
-
-// Add GUI
-const gui = new dat.GUI();
-const cameraFolder = gui.addFolder('Camera');
-
-// Create controllers
-const positionControllers = {
-    x: cameraFolder.add(camera.position, 'x', -10, 10).name('Position X'),
-    y: cameraFolder.add(camera.position, 'y', -10, 10).name('Position Y'),
-    z: cameraFolder.add(camera.position, 'z', -10, 10).name('Position Z')
-};
-
-// Rotation controls (in degrees for easier understanding)
-const cameraRotation = {
-    x: THREE.MathUtils.radToDeg(camera.rotation.x),
-    y: THREE.MathUtils.radToDeg(camera.rotation.y),
-    z: THREE.MathUtils.radToDeg(camera.rotation.z)
-};
-
-const rotationControllers = {
-    x: cameraFolder.add(cameraRotation, 'x', -180, 180).name('Rotation X (deg)').onChange((value) => {
-        camera.rotation.x = THREE.MathUtils.degToRad(value);
-    }),
-    y: cameraFolder.add(cameraRotation, 'y', -180, 180).name('Rotation Y (deg)').onChange((value) => {
-        camera.rotation.y = THREE.MathUtils.degToRad(value);
-    }),
-    z: cameraFolder.add(cameraRotation, 'z', -180, 180).name('Rotation Z (deg)').onChange((value) => {
-        camera.rotation.z = THREE.MathUtils.degToRad(value);
-    })
-};
-
-cameraFolder.open();
-
-// Add controls change handler
-controls.addEventListener('change', () => {
-    // Update position controllers
-    Object.keys(positionControllers).forEach(axis => {
-        positionControllers[axis].updateDisplay();
-    });
-    
-    // Update rotation controllers
-    cameraRotation.x = THREE.MathUtils.radToDeg(camera.rotation.x);
-    cameraRotation.y = THREE.MathUtils.radToDeg(camera.rotation.y);
-    cameraRotation.z = THREE.MathUtils.radToDeg(camera.rotation.z);
-    Object.keys(rotationControllers).forEach(axis => {
-        rotationControllers[axis].updateDisplay();
-    });
-});
-
-const cameraDebug = {
-    logPosition: function() {
-        console.log('Camera Position:', {
-            position: camera.position.toArray(),
-            rotation: {
-                x: THREE.MathUtils.radToDeg(camera.rotation.x),
-                y: THREE.MathUtils.radToDeg(camera.rotation.y),
-                z: THREE.MathUtils.radToDeg(camera.rotation.z)
-            }
-        });
-    },
-    reset: function() {
-        camera.position.set(0, 0.5, 0.01);
-        camera.rotation.set(-1.5, 0, 0);
-        controls.update();
-        
-        // Update all GUI controllers
-        Object.keys(positionControllers).forEach(axis => {
-            positionControllers[axis].updateDisplay();
-        });
-        cameraRotation.x = THREE.MathUtils.radToDeg(camera.rotation.x);
-        cameraRotation.y = THREE.MathUtils.radToDeg(camera.rotation.y);
-        cameraRotation.z = THREE.MathUtils.radToDeg(camera.rotation.z);
-        Object.keys(rotationControllers).forEach(axis => {
-            rotationControllers[axis].updateDisplay();
-        });
-    }
-};
-
-gui.add(cameraDebug, 'logPosition').name('Log Camera Values');
-gui.add(cameraDebug, 'reset').name('Reset Camera');
 
 const directionalLight = new THREE.DirectionalLight(0x00bbff, 6);
 directionalLight.position.set(0, 3, 5);
 scene.add(directionalLight);
 
-// Add animation mixer
+// Add ambient light for better overall illumination
+const ambientLight = new THREE.AmbientLight(0x404040, 2);
+scene.add(ambientLight);
+
+// Animation setup
 let mixer;
 const clock = new THREE.Clock();
 let animationActions = [];
-let isFirstAnimationComplete = false;
 
 function playAnimationsOnce() {
     if (animationActions.length > 0) {
@@ -120,28 +91,19 @@ function playAnimationsOnce() {
     }
 }
 
-// Click event handler
-renderer.domElement.addEventListener('click', () => {
-    if (isFirstAnimationComplete) {
-        playAnimationsOnce();
-    }
-});
-
 function animate() {
-    controls.update(); // Update OrbitControls
+    controls.update();
+    
     if (mixer) {
         const delta = clock.getDelta();
         mixer.update(delta);
-
-        // Check if first animation is complete
-        if (!isFirstAnimationComplete && mixer.time > 0) {
-            const anyRunning = animationActions.some(action => action.isRunning());
-            if (!anyRunning) {
-                isFirstAnimationComplete = true;
-            }
-        }
     }
-    renderer.render(scene, camera);
+
+    // Render bloom effect
+    bloomComposer.render();
+    
+    // Final render
+    finalComposer.render();
 }
 
 renderer.setAnimationLoop(animate);
@@ -150,12 +112,20 @@ const loader = new GLTFLoader();
 
 loader.load('/ECN_tentative_animation_2.glb', function(gltf) {
     const model = gltf.scene;
-    const axesHelper = new THREE.AxesHelper(5);
-    scene.add(axesHelper);
+    model.position.set(0.25, 0, 0);
+    model.rotation.set(0, 0.028, 0);
     
-    console.log('Model position:', model.position);
-    console.log('Model bounds:', new THREE.Box3().setFromObject(model));
-    console.log('Camera position:', camera.position);
+    // Enhanced material setup for better bloom
+    model.traverse((child) => {
+        if (child.isMesh && child.material) {
+            const mat = child.material.clone();
+            mat.emissive = new THREE.Color(0x00bbff);
+            mat.emissiveIntensity = 10; // Much stronger emission
+            mat.toneMapped = false; // Prevent tone mapping from reducing brightness
+            child.material = mat;
+        }
+    });
+    
     scene.add(model);
 
     // Setup animations
@@ -166,9 +136,21 @@ loader.load('/ECN_tentative_animation_2.glb', function(gltf) {
             const action = mixer.clipAction(clip);
             animationActions.push(action);
         });
-        // Play animations immediately once
         playAnimationsOnce();
     }
 }, undefined, function(error) {
     console.error(error);
+});
+
+// Handle window resize
+window.addEventListener('resize', () => {
+    const width = window.innerWidth;
+    const height = window.innerHeight;
+
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+
+    renderer.setSize(width, height);
+    bloomComposer.setSize(width, height);
+    finalComposer.setSize(width, height);
 });

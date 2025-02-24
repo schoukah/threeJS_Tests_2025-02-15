@@ -1,6 +1,5 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
 // Create a separate renderer div that won't interfere with scrolling
 const renderDiv = document.createElement('div');
@@ -44,14 +43,6 @@ window.addEventListener('resize', () => {
 // Get canvas container
 const canvasContainer = document.getElementById('canvas-container');
 canvasContainer.appendChild(renderer.domElement);
-
-// Add OrbitControls back
-const controls = new OrbitControls(camera, renderer.domElement);
-controls.enableDamping = true;
-controls.dampingFactor = 0.05;
-controls.enableZoom = false;
-controls.enablePan = false;
-controls.enableRotate = true;
 
 // Enhanced lighting setup
 const ambientLight = new THREE.AmbientLight(0xffffff, 1);
@@ -198,7 +189,6 @@ function animate() {
         }
     }
     updateCameraPosition();
-    controls.update();
     renderer.render(scene, camera);
 }
 

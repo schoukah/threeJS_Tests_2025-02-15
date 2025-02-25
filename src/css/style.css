@@ -56,16 +56,20 @@ h1, h2, h3, blockquote {
 h1 {
   font-family: elevon, sans-serif;
   font-weight: 700;
-  font-size: 5rem;
+  font-size: 3rem;
   pointer-events: none;
+}
+
+h1:hover {
+  color: #01EAFE;
 }
 
 header {
   background: var(--dark-bg);
   grid-column: 6 / span 5;
   font-size: 2.5rem;
-  padding: 2rem;
-  margin-bottom: var(--spacing);
+  /* padding: 2rem; */
+  /* margin-bottom: var(--spacing); */
   pointer-events: auto;
 }
 

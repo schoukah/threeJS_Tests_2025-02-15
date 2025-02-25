@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+const MODEL = 'https://flaneries.net/ECN_Logo_animation_agregation_pieces_Sarah_2025-02-24_bleues.glb'
+
 // Create a separate renderer div that won't interfere with scrolling
 const renderDiv = document.createElement('div');
 renderDiv.style.position = 'fixed';
@@ -57,8 +59,8 @@ controls.enableRotate = true;
 const ambientLight = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambientLight);
 
-const directionalLight = new THREE.DirectionalLight(0x00bbff, 6);
-directionalLight.position.set(5, 5, 5);
+const directionalLight = new THREE.DirectionalLight(0x00bbff, 5);
+directionalLight.position.set(5, 5, -2);
 scene.add(directionalLight);
 
 // Add fill light from the front
@@ -76,11 +78,14 @@ let hasPlayedReverseAnimation = false; // Add flag for tracking first reverse pl
 window.addEventListener('scroll', () => {
     const st = window.pageYOffset || document.documentElement.scrollTop;
     if (st > lastScrollTop && !hasPlayedReverseAnimation) {
-        // Only play reverse animation if it hasn't played yet
         scrollDirection = -1;
         hasPlayedReverseAnimation = true; // Mark that we've played the reverse animation
-        if (!isAnimationPlaying) {
-            playAnimationInDirection(scrollDirection);
+        if (!isAnimationPlaying && initialAnimationComplete) {
+            // Resume animation from current point
+            animationActions.forEach(action => {
+                action.paused = false;
+            });
+            isAnimationPlaying = true;
         }
     }
     lastScrollTop = st;
@@ -210,7 +215,7 @@ renderer.setAnimationLoop(null);
 
 const loader = new GLTFLoader();
 
-loader.load('/ECN_tentative_animation_2.glb', function(gltf) {
+loader.load( MODEL, function(gltf) {
     model = gltf.scene; // Store model reference
     model.position.set(0.25, 0, 0);
     model.rotation.set(0, 0, 0);

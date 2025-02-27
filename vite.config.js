@@ -5,6 +5,7 @@ import { defineConfig } from 'vite'
 export default defineConfig({
     base: 'https://flaneries.net/',
     build: {
+    outDir : 'docs',
     rollupOptions: {
       input: {
         // index: '/index.html',

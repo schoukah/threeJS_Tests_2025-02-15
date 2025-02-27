@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 // import path from 'path'
 
 export default defineConfig({
-    base: 'https://flaneries.net/',
+    // base: 'https://flaneries.net/',
     build: {
     outDir : 'docs',
     rollupOptions: {

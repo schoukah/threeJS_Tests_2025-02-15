@@ -8,7 +8,7 @@ export default defineConfig({
     outDir : 'docs',
     rollupOptions: {
       input: {
-        // index: '/index.html',
+        index: '/index.html',
         main: '/src/js/main.js',
         styles: '/src/css/style.css',
         // logo: '/src/js/animated_logo_v1_2025-02-21.js'

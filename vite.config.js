@@ -3,7 +3,7 @@ import { defineConfig } from 'vite'
 // import path from 'path'
 
 export default defineConfig({
-    base: ' https://schoukah.github.io/',
+    base: ' https://schoukah.github.io',
     build: {
     outDir : 'docs',
     rollupOptions: {

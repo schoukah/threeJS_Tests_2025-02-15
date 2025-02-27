@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
-const MODEL = 'https://flaneries.net/ECN_Logo_animation_agregation_pieces_Sarah_2025-02-24_bleues.glb'
+const MODEL = './ECN_Logo_animation_agregation_pieces_Sarah_2025-02-24_bleues.glb'
 
 // Create a separate renderer div that won't interfere with scrolling
 const renderDiv = document.createElement('div');
@@ -70,13 +70,13 @@ scene.add(frontLight);
 
 // Add scroll tracking variables
 let lastScrollTop = 0;
-let scrollDirection = 1; // 1 for forward, -1 for reverse
+// let scrollDirection = 1; // 1 for forward, -1 for reverse
 let isAnimationPlaying = false;
 let hasPlayedReverseAnimation = false; // Add flag for tracking first reverse play
 
 // Track scroll position and direction
 window.addEventListener('scroll', () => {
-    const st = window.pageYOffset || document.documentElement.scrollTop;
+    const st = window.scrollY || document.documentElement.scrollTop;
     if (st > lastScrollTop && !hasPlayedReverseAnimation) {
         scrollDirection = -1;
         hasPlayedReverseAnimation = true; // Mark that we've played the reverse animation
